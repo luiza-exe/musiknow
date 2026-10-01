@@ -59,9 +59,3 @@ No installation required. `musiknow` runs natively in any modern web browser sup
 - **Local Data First**: All audio recordings, playlists, and user configurations are stored locally on-device using IndexedDB.
 - **Secure Credentials**: API calls to Groq pass through a Cloudflare Worker proxy to protect credentials.
 - **Defense in Depth**: Strict CSP policies and input sanitization (`escapeHtml`) on all external responses.
-
----
-
-## 📄 License
-
-MIT License © 2026
