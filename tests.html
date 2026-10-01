@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MusikNow — Unit Tests</title>
+<style>
+  :root {
+    --bg: #0a0a0c;
+    --s1: #14151a;
+    --s2: #1c1d24;
+    --s3: #24252e;
+    --border: #2a2b35;
+    --accent: #8b5cf6;
+    --green: #22c55e;
+    --red: #ef4444;
+    --text: #d8dde5;
+    --dim: #6a6c7a;
+    --font-d: 'Bebas Neue', Impact, sans-serif;
+    --font-m: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text); font-family: var(--font-m);
+    padding: 32px 24px 80px; min-height: 100vh; line-height: 1.5;
+  }
+  .container { max-width: 980px; margin: 0 auto; }
+  h1 {
+    font-family: var(--font-d); font-size: 2.4rem; letter-spacing: .08em;
+    color: var(--text); margin-bottom: 8px; text-transform: uppercase;
+  }
+  .subtitle { color: var(--dim); font-size: .82rem; margin-bottom: 32px; }
+  .summary {
+    background: var(--s1); border: 1px solid var(--border); border-radius: 10px;
+    padding: 20px 24px; margin-bottom: 28px; display: flex; gap: 30px; align-items: center;
+    flex-wrap: wrap;
+  }
+  .summary-num {
+    font-family: var(--font-d); font-size: 2.5rem; line-height: 1;
+  }
+  .summary-num.total { color: var(--text); }
+  .summary-num.pass { color: var(--green); }
+  .summary-num.fail { color: var(--red); }
+  .summary-label { color: var(--dim); font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; }
+  .summary-block { display: flex; flex-direction: column; gap: 4px; }
+  .section {
+    background: var(--s1); border: 1px solid var(--border); border-radius: 10px;
+    margin-bottom: 20px; overflow: hidden;
+  }
+  .section-title {
+    font-family: var(--font-d); font-size: 1.3rem; letter-spacing: .1em;
+    padding: 16px 22px; border-bottom: 1px solid var(--border);
+    text-transform: uppercase; color: var(--accent);
+  }
+  .test {
+    padding: 12px 22px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 14px; font-size: .82rem;
+  }
+  .test:last-child { border-bottom: none; }
+  .test-status {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 50%; font-weight: 700; font-size: .8rem;
+    flex-shrink: 0;
+  }
+  .test-status.pass { background: rgba(34, 197, 94, .15); color: var(--green); }
+  .test-status.fail { background: rgba(239, 68, 68, .15); color: var(--red); }
+  .test-name { flex: 1; color: var(--text); }
+  .test-fail-msg {
+    font-family: var(--font-m); font-size: .7rem; color: var(--red);
+    background: rgba(239, 68, 68, .08); padding: 4px 10px; border-radius: 5px;
+    border: 1px solid rgba(239, 68, 68, .25);
+  }
+  .badge {
+    background: var(--s2); color: var(--dim); font-size: .65rem;
+    padding: 3px 9px; border-radius: 4px; letter-spacing: .08em;
+  }
+  footer {
+    margin-top: 40px; color: var(--dim); font-size: .72rem; text-align: center;
+    border-top: 1px solid var(--border); padding-top: 24px;
+  }
+  .running {
+    display: inline-block; width: 12px; height: 12px; border: 2px solid var(--accent);
+    border-top-color: transparent; border-radius: 50%; animation: spin .6s linear infinite;
+    margin-left: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>MusikNow — Unit Tests</h1>
+  <p class="subtitle">Verificare automată a funcțiilor critice. Rezultate vizibile mai jos.</p>
+
+  <div class="summary">
+    <div class="summary-block">
+      <div class="summary-num total" id="total-count">0</div>
+      <div class="summary-label">Total teste</div>
+    </div>
+    <div class="summary-block">
+      <div class="summary-num pass" id="pass-count">0</div>
+      <div class="summary-label">Trecute</div>
+    </div>
+    <div class="summary-block">
+      <div class="summary-num fail" id="fail-count">0</div>
+      <div class="summary-label">Picate</div>
+    </div>
+    <div class="summary-block">
+      <div class="summary-num" id="duration" style="color: var(--accent); font-size: 1.5rem; margin-top: 8px;">—</div>
+      <div class="summary-label">Durată (ms)</div>
+    </div>
+  </div>
+
+  <div id="results"></div>
+
+  <footer>
+    Pagina e standalone (fără dependențe externe). Funcțiile testate sunt extrase din codul aplicației.<br>
+    Reîncarcă pagina pentru a rerula testele.
+  </footer>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════════════════
+// FUNCȚIILE TESTATE — extrase din codul aplicației pentru izolare.
+// Orice modificare în aplicație ar trebui reflectată aici, apoi rulate testele.
+// ════════════════════════════════════════════════════════════════════════════
+
+// 1. SECURITATE: protecție XSS
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// 2. AUDIO DSP: detecție pitch prin autocorelație
+function autoCorrelate(buf, sampleRate) {
+  const SIZE = buf.length;
+  let rms = 0;
+  for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
+  rms = Math.sqrt(rms / SIZE);
+  if (rms < 0.01) return -1; // silence
+  let r1 = 0, r2 = SIZE - 1;
+  const threshold = 0.2;
+  for (let i = 0; i < SIZE / 2; i++) if (Math.abs(buf[i]) < threshold) { r1 = i; break; }
+  for (let i = 1; i < SIZE / 2; i++) if (Math.abs(buf[SIZE - i]) < threshold) { r2 = SIZE - i; break; }
+  const buf2 = buf.slice(r1, r2);
+  const SIZE2 = buf2.length;
+  const c = new Array(SIZE2).fill(0);
+  for (let i = 0; i < SIZE2; i++) for (let j = 0; j < SIZE2 - i; j++) c[i] += buf2[j] * buf2[j + i];
+  let d = 0; while (c[d] > c[d + 1]) d++;
+  let maxval = -1, maxpos = -1;
+  for (let i = d; i < SIZE2; i++) if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
+  let T0 = maxpos;
+  const x1 = c[T0 - 1], x2 = c[T0], x3 = c[T0 + 1];
+  const a = (x1 + x3 - 2 * x2) / 2, b = (x3 - x1) / 2;
+  if (a) T0 = T0 - b / (2 * a);
+  return sampleRate / T0;
+}
+
+// 3. AUDIO: encoder WAV (header RIFF)
+function bufferToWav(audioBuf) {
+  const numChannels = audioBuf.numberOfChannels;
+  const sampleRate = audioBuf.sampleRate;
+  const length = audioBuf.length * numChannels * 2 + 44;
+  const buffer = new ArrayBuffer(length);
+  const view = new DataView(buffer);
+  const writeString = (offset, str) => { for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i)); };
+  writeString(0, 'RIFF');
+  view.setUint32(4, length - 8, true);
+  writeString(8, 'WAVE');
+  writeString(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * numChannels * 2, true);
+  view.setUint16(32, numChannels * 2, true);
+  view.setUint16(34, 16, true);
+  writeString(36, 'data');
+  view.setUint32(40, length - 44, true);
+  return new Blob([buffer], { type: 'audio/wav' });
+}
+
+// 4. SEARCH: normalizare query si generare variante (extras din searchAny)
+function generateSearchVariants(query) {
+  const normalized = query.trim().replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"');
+  const queryWords = normalized.split(/\s+/).filter(w => w.length > 0);
+  const variants = new Set([normalized]);
+  if (normalized.includes("'")) {
+    variants.add(normalized.replace(/'/g, ''));
+    variants.add(normalized.replace(/'/g, ' ').replace(/\s+/g, ' ').trim());
+  }
+  if (normalized.includes('-')) {
+    variants.add(normalized.replace(/-/g, ' '));
+  }
+  const addFieldVariants = (artistWord, trackWords) => {
+    const aClean = artistWord.replace(/'/g, '');
+    const tClean = trackWords.replace(/'/g, '');
+    const tQuoted = trackWords.includes(' ') ? `"${trackWords}"` : trackWords;
+    const tQuotedClean = tClean.includes(' ') ? `"${tClean}"` : tClean;
+    variants.add(`track:${tQuoted} artist:${artistWord}`);
+    variants.add(`track:${tQuotedClean} artist:${aClean}`);
+  };
+  if (queryWords.length === 2) {
+    const [w1, w2] = queryWords;
+    addFieldVariants(w2, w1);
+    addFieldVariants(w1, w2);
+  } else if (queryWords.length >= 3) {
+    const last = queryWords[queryWords.length - 1];
+    const first = queryWords[0];
+    addFieldVariants(last, queryWords.slice(0, -1).join(' '));
+    addFieldVariants(first, queryWords.slice(1).join(' '));
+  }
+  return [...variants];
+}
+
+// 5. UTIL: convertire la formate de frecvențe (pentru tuner)
+const NOTE_FREQS = { 'C': 261.63, 'D': 293.66, 'E': 329.63, 'F': 349.23, 'G': 392.00, 'A': 440.00, 'B': 493.88 };
+function noteFreq(note, octave = 4) {
+  const base = NOTE_FREQS[note.toUpperCase()];
+  if (!base) return null;
+  return base * Math.pow(2, octave - 4);
+}
+
+// 6. VALIDARE: data URL pentru cover images (extras din processImageFile)
+function isValidImageDataUrl(dataUrl, maxBytes = 700_000) {
+  if (typeof dataUrl !== 'string') return false;
+  if (!dataUrl.startsWith('data:image/')) return false;
+  if (dataUrl.length > maxBytes) return false;
+  return true;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// TEST RUNNER
+// ════════════════════════════════════════════════════════════════════════════
+const tests = [];
+function test(category, name, fn) { tests.push({ category, name, fn }); }
+function assertEq(actual, expected, msg) {
+  if (actual !== expected) throw new Error(msg || `Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+}
+function assertTrue(cond, msg) { if (!cond) throw new Error(msg || 'Expected truthy'); }
+function assertClose(actual, expected, tolerance, msg) {
+  if (Math.abs(actual - expected) > tolerance) {
+    throw new Error(msg || `Expected ${expected} ±${tolerance}, got ${actual}`);
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// TESTE — Securitate (XSS via escapeHtml)
+// ════════════════════════════════════════════════════════════════════════════
+test('Security', 'escapeHtml escapează <script> tag', () => {
+  assertEq(escapeHtml('<script>'), '&lt;script&gt;');
+});
+test('Security', 'escapeHtml escapează ghilimele duble', () => {
+  assertEq(escapeHtml('a"b'), 'a&quot;b');
+});
+test('Security', 'escapeHtml escapează apostroful', () => {
+  assertEq(escapeHtml("a'b"), 'a&#039;b');
+});
+test('Security', 'escapeHtml escapează ampersand', () => {
+  assertEq(escapeHtml('a&b'), 'a&amp;b');
+});
+test('Security', 'escapeHtml previne payload XSS complet', () => {
+  const payload = `<img src=x onerror="alert('xss')">`;
+  const safe = escapeHtml(payload);
+  assertTrue(!safe.includes('<'), 'Output conține <');
+  assertTrue(!safe.includes('>'), 'Output conține >');
+  assertTrue(!safe.includes('"'), 'Output conține "');
+  assertTrue(!safe.includes("'"), 'Output conține apostrof');
+});
+test('Security', 'escapeHtml tratează null/undefined fără crash', () => {
+  assertEq(escapeHtml(null), '');
+  assertEq(escapeHtml(undefined), '');
+});
+test('Security', 'escapeHtml păstrează text neutru', () => {
+  assertEq(escapeHtml('Hello World 123'), 'Hello World 123');
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// TESTE — Audio DSP (autoCorrelate)
+// ════════════════════════════════════════════════════════════════════════════
+function generateSineWave(freq, sampleRate, durationSamples) {
+  const buf = new Float32Array(durationSamples);
+  for (let i = 0; i < durationSamples; i++) {
+    buf[i] = Math.sin(2 * Math.PI * freq * i / sampleRate);
+  }
+  return buf;
+}
+
+test('Audio DSP', 'autoCorrelate detectează 440Hz (A4)', () => {
+  const buf = generateSineWave(440, 44100, 4096);
+  const detected = autoCorrelate(buf, 44100);
+  assertClose(detected, 440, 5, `Detectat ${detected.toFixed(1)}Hz, așteptat 440`);
+});
+test('Audio DSP', 'autoCorrelate detectează 82.4Hz (E2, coarda joasă)', () => {
+  const buf = generateSineWave(82.4, 44100, 4096);
+  const detected = autoCorrelate(buf, 44100);
+  assertClose(detected, 82.4, 2, `Detectat ${detected.toFixed(1)}Hz, așteptat 82.4`);
+});
+test('Audio DSP', 'autoCorrelate detectează 329.6Hz (E4)', () => {
+  const buf = generateSineWave(329.6, 44100, 4096);
+  const detected = autoCorrelate(buf, 44100);
+  assertClose(detected, 329.6, 5, `Detectat ${detected.toFixed(1)}Hz, așteptat 329.6`);
+});
+test('Audio DSP', 'autoCorrelate returnează -1 pentru silence', () => {
+  const buf = new Float32Array(4096); // zero-filled
+  const detected = autoCorrelate(buf, 44100);
+  assertEq(detected, -1, `Așteptat -1 pentru tăcere, primit ${detected}`);
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// TESTE — Audio WAV Encoder (bufferToWav)
+// ════════════════════════════════════════════════════════════════════════════
+function fakeAudioBuffer(numChannels, sampleRate, length) {
+  return {
+    numberOfChannels: numChannels,
+    sampleRate: sampleRate,
+    length: length,
+    getChannelData: () => new Float32Array(length)
+  };
+}
+
+test('Audio WAV', 'bufferToWav produce Blob valid', () => {
+  const ab = fakeAudioBuffer(1, 44100, 1000);
+  const blob = bufferToWav(ab);
+  assertTrue(blob instanceof Blob, 'Output nu e Blob');
+  assertEq(blob.type, 'audio/wav');
+});
+test('Audio WAV', 'bufferToWav are header RIFF corect', async () => {
+  const ab = fakeAudioBuffer(1, 44100, 1000);
+  const blob = bufferToWav(ab);
+  const ab2 = await blob.arrayBuffer();
+  const view = new DataView(ab2);
+  const riff = String.fromCharCode(view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3));
+  assertEq(riff, 'RIFF', `Header: ${riff}`);
+  const wave = String.fromCharCode(view.getUint8(8), view.getUint8(9), view.getUint8(10), view.getUint8(11));
+  assertEq(wave, 'WAVE');
+});
+test('Audio WAV', 'bufferToWav are sample rate corect', async () => {
+  const ab = fakeAudioBuffer(1, 48000, 1000);
+  const blob = bufferToWav(ab);
+  const ab2 = await blob.arrayBuffer();
+  const view = new DataView(ab2);
+  const sr = view.getUint32(24, true);
+  assertEq(sr, 48000);
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// TESTE — Search query generation
+// ════════════════════════════════════════════════════════════════════════════
+test('Search', 'Smart quotes (U+2019) normalizate la apostrof ASCII', () => {
+  const variants = generateSearchVariants('10\u2019s pantera');
+  assertTrue(variants.some(v => v.includes("10's")), `Niciun variant cu 10's: ${variants.join(' | ')}`);
+});
+test('Search', 'Variantă fără apostrof generată pentru "10\'s pantera"', () => {
+  const variants = generateSearchVariants("10's pantera");
+  assertTrue(variants.includes('10s pantera'), `Lipsește 10s pantera: ${variants.join(' | ')}`);
+});
+test('Search', 'Variante field-specific (artist:X track:Y) pentru 2 cuvinte', () => {
+  const variants = generateSearchVariants("10's pantera");
+  const hasField = variants.some(v => v.includes('artist:pantera'));
+  assertTrue(hasField, `Lipsește field-specific cu artist:pantera: ${variants.join(' | ')}`);
+});
+test('Search', 'Ambele permutări de artist generate (X artist, Y artist)', () => {
+  const variants = generateSearchVariants("pantera 10's");
+  const both = variants.filter(v => v.includes('artist:')).length;
+  assertTrue(both >= 4, `Așteptat ≥4 field variants, primit ${both}: ${variants.join(' | ')}`);
+});
+test('Search', 'Query gol nu generează variante exotice', () => {
+  const variants = generateSearchVariants('hello');
+  assertEq(variants.length, 1, `Pentru 1 cuvânt așteptam 1 variantă, primit ${variants.length}`);
+});
+test('Search', 'Dash convertit la space pentru "rock-n-roll"', () => {
+  const variants = generateSearchVariants('rock-n-roll guns');
+  assertTrue(variants.some(v => v === 'rock n roll guns'), `Lipsește versiunea fără dash: ${variants.join(' | ')}`);
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// TESTE — Note frequency math
+// ════════════════════════════════════════════════════════════════════════════
+test('Tuner', 'A4 = 440 Hz', () => {
+  assertClose(noteFreq('A', 4), 440, 0.01);
+});
+test('Tuner', 'A5 = 880 Hz (octavă sus)', () => {
+  assertClose(noteFreq('A', 5), 880, 0.01);
+});
+test('Tuner', 'A3 = 220 Hz (octavă jos)', () => {
+  assertClose(noteFreq('A', 3), 220, 0.01);
+});
+test('Tuner', 'E4 = 329.63 Hz', () => {
+  assertClose(noteFreq('E', 4), 329.63, 0.1);
+});
+test('Tuner', 'Notă invalidă returnează null', () => {
+  assertEq(noteFreq('Z'), null);
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// TESTE — Validare imagini playlist cover
+// ════════════════════════════════════════════════════════════════════════════
+test('Playlists', 'Data URL valid pentru JPEG acceptat', () => {
+  assertTrue(isValidImageDataUrl('data:image/jpeg;base64,xxx'));
+});
+test('Playlists', 'Data URL pentru PNG acceptat', () => {
+  assertTrue(isValidImageDataUrl('data:image/png;base64,xxx'));
+});
+test('Playlists', 'Non-data-URL respins', () => {
+  assertTrue(!isValidImageDataUrl('http://evil.com/img.jpg'));
+});
+test('Playlists', 'Data URL non-image respins', () => {
+  assertTrue(!isValidImageDataUrl('data:text/html;base64,PHNjcmlwdD4='));
+});
+test('Playlists', 'Imagine prea mare respinsă', () => {
+  const huge = 'data:image/jpeg;base64,' + 'A'.repeat(800_000);
+  assertTrue(!isValidImageDataUrl(huge));
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// TESTE — IndexedDB integration (real)
+// ════════════════════════════════════════════════════════════════════════════
+test('IndexedDB', 'IndexedDB API disponibil în browser', () => {
+  assertTrue('indexedDB' in window, 'window.indexedDB nu există');
+});
+test('IndexedDB', 'Crearea unei conexiuni reușește', async () => {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('mk_test_db', 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore('test', { keyPath: 'id', autoIncrement: true });
+    req.onsuccess = e => {
+      const db = e.target.result;
+      assertTrue(db.objectStoreNames.contains('test'));
+      db.close();
+      indexedDB.deleteDatabase('mk_test_db');
+      resolve();
+    };
+    req.onerror = () => reject(new Error('IndexedDB open failed'));
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// RULARE & RAPORTARE
+// ════════════════════════════════════════════════════════════════════════════
+async function runTests() {
+  const start = performance.now();
+  const grouped = {};
+  for (const t of tests) {
+    if (!grouped[t.category]) grouped[t.category] = [];
+    grouped[t.category].push(t);
+  }
+  const resultsEl = document.getElementById('results');
+  let totalPass = 0, totalFail = 0;
+  for (const [category, list] of Object.entries(grouped)) {
+    const section = document.createElement('div');
+    section.className = 'section';
+    section.innerHTML = `<div class="section-title">${category} <span class="badge">${list.length} ${list.length === 1 ? 'test' : 'teste'}</span></div>`;
+    for (const t of list) {
+      const item = document.createElement('div');
+      item.className = 'test';
+      try {
+        const ret = t.fn();
+        if (ret && typeof ret.then === 'function') await ret;
+        item.innerHTML = `<span class="test-status pass">✓</span><span class="test-name">${t.name}</span>`;
+        totalPass++;
+      } catch (err) {
+        item.innerHTML = `<span class="test-status fail">✗</span><span class="test-name">${t.name}</span><span class="test-fail-msg">${err.message}</span>`;
+        totalFail++;
+      }
+      section.appendChild(item);
+    }
+    resultsEl.appendChild(section);
+  }
+  document.getElementById('total-count').textContent = tests.length;
+  document.getElementById('pass-count').textContent = totalPass;
+  document.getElementById('fail-count').textContent = totalFail;
+  document.getElementById('duration').textContent = Math.round(performance.now() - start);
+}
+
+runTests();
+</script>
+</body>
+</html>
